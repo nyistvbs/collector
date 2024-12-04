@@ -33,20 +33,23 @@ func (s *Service) tourism() {
 		}
 
 		// 处理逻辑 TODO 业务逻辑处理爬虫数据并去重
-		rows := &model.TourismDB{}
+		rows := map[string]*model.TourismDB{}
 		for _, v := range data {
+			if _, e := rows[v.Id]; !e {
+				rows[v.Id] = &model.TourismDB{}
+			}
 			switch v.Key {
 			case "listing-card-title":
-				rows.HotelName = v.Val
+				rows[v.Id].HotelName = v.Val
 			case "price-availability-row":
-				rows.Price = v.Val
+				rows[v.Id].Price = v.Val
 			}
 		}
 
 		// 入库
-		if rows.HotelName != "" {
-			s.dao.TourismInsert(ctx, rows)
-			log.Println("入库成功 数据:", rows)
+		for _, row := range rows {
+			s.dao.TourismInsert(ctx, row)
+			log.Println("入库成功 数据:", row)
 		}
 	}
 

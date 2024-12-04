@@ -61,8 +61,13 @@ func (s *Service) crawlQueue(item *model.TaskItem) {
 	}
 
 	// 提取数据
+	var id string
 	data := make([]*model.CrawlData, 0)
 	doc.Find("div").Each(func(i int, str *goquery.Selection) {
+		tmpId, exist := str.Attr("aria-labelledby")
+		if exist && strings.Contains(tmpId, "title_") {
+			id = tmpId
+		}
 		key, exist := str.Attr("data-testid")
 		if !exist || !helper.InStringArray([]string{"listing-card-title", "price-availability-row", "listing-card-subtitle"}, key) {
 			return
@@ -70,10 +75,15 @@ func (s *Service) crawlQueue(item *model.TaskItem) {
 
 		log.Println("提取数据 标签:", key, " 内容:", str.Text())
 		data = append(data, &model.CrawlData{
+			Id:  id,
 			Key: key,
 			Val: str.Text(),
 		})
 	})
+
+	if len(data) == 0 {
+		return
+	}
 
 	buf, err := json.Marshal(data)
 	if err != nil {
