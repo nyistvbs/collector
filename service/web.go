@@ -1,7 +1,10 @@
 package service
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -33,28 +36,33 @@ func (s *Service) tcp() {
 func (s *Service) resp(conn net.Conn) {
 	defer conn.Close()
 
-	// 读取客户端数据
-	buf := make([]byte, 1024)
-	_, err := conn.Read(buf)
+	// 接收消息长度头部（假设长度为 4 字节）
+	header := make([]byte, 4)
+	_, err := io.ReadFull(conn, header)
 	if err != nil {
-		log.Println("Error reading from connection:", err)
-		return
+		log.Fatal("Error reading header:", err)
+	}
+	// 假设头部是消息的长度
+	messageLength := int(header[0])<<24 | int(header[1])<<16 | int(header[2])<<8 | int(header[3])
+
+	// 接收完整的消息
+	message := make([]byte, messageLength)
+	_, err = io.ReadFull(conn, message)
+	if err != nil {
+		log.Fatal("Error reading message:", err)
 	}
 
-	// 打印收到的消息
-	fmt.Printf("Received message: %s\n", string(buf))
-
 	// 向客户端发送响应
-	_, err = conn.Write([]byte("Hello from server!"))
+	_, err = conn.Write([]byte("ok"))
 	if err != nil {
 		log.Println("Error writing to connection:", err)
 	}
 
 	// 入队列
-	s.queue.Enqueue(buf)
+	s.queue.Enqueue(message)
 }
 
-func (s *Service) req(message string) {
+func (s *Service) req(message []byte) {
 	// 连接到 TCP 服务器 (假设服务器地址为 localhost:8080)
 	conn, err := net.Dial("tcp", "localhost:8080")
 	if err != nil {
@@ -65,18 +73,33 @@ func (s *Service) req(message string) {
 	// 设置超时：如果连接或读取响应超过 5 秒，则报错
 	conn.SetDeadline(time.Now().Add(5 * time.Second))
 
-	// 发送请求数据
-	_, err = conn.Write([]byte(message))
+	// 创建一个缓冲区
+	var buffer bytes.Buffer
+
+	// 写入消息长度（4 字节）
+	messageLength := uint32(len(message))
+	err = binary.Write(&buffer, binary.BigEndian, messageLength)
+	if err != nil {
+		log.Fatal("Error writing message length:", err)
+	}
+
+	// 写入消息内容
+	_, err = buffer.Write(message)
+	if err != nil {
+		log.Fatal("Error writing message content:", err)
+	}
+
+	_, err = conn.Write(buffer.Bytes())
 	if err != nil {
 		log.Fatal("Error sending message:", err)
 	}
-	fmt.Println("Message sent:", message)
+	//fmt.Println("Message sent:", message)
 
 	// 接收服务器的响应
-	buffer := make([]byte, 1024) // 1024 字节缓冲区
-	n, err := conn.Read(buffer)
+	buf := make([]byte, 1024) // 1024 字节缓冲区
+	_, err = conn.Read(buf)
 	if err != nil {
 		log.Fatal("Error reading response:", err)
 	}
-	fmt.Println("Received from server:", string(buffer[:n]))
+	//fmt.Println("Received from server:", string(buffer[:n]))
 }

@@ -7,6 +7,7 @@ toolchain go1.23.4
 require (
 	github.com/PuerkitoBio/goquery v1.10.0
 	github.com/go-rod/rod v0.116.2
+	github.com/pkg/errors v0.9.1
 	golang.org/x/sync v0.8.0
 	gorm.io/driver/mysql v1.5.7
 	gorm.io/gorm v1.25.12

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"collector/helper"
 	"collector/model"
 	"encoding/json"
 	"fmt"
@@ -10,7 +11,6 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/proto"
 	"golang.org/x/sync/errgroup"
 )
@@ -38,12 +38,10 @@ func (s *Service) crawl() {
 }
 
 func (s *Service) crawlQueue(item *model.TaskItem) {
-	// 创建浏览器实例
-	browser := rod.New().MustConnect()
-	defer browser.MustClose()
+	fmt.Println(item.Url)
 
 	// 打开目标页面
-	page := browser.MustPage(item.Url).MustWaitLoad()
+	page := s.rod.MustPage(item.Url).MustWaitLoad()
 
 	_ = page.SetUserAgent(&proto.NetworkSetUserAgentOverride{
 		UserAgent: item.Headers.UserAgent,
@@ -67,14 +65,18 @@ func (s *Service) crawlQueue(item *model.TaskItem) {
 
 	// 提取数据
 	//fmt.Println(doc.Find("data-testid").Text())
+	data := make([]*model.CrawlData, 0)
 	doc.Find("div").Each(func(i int, str *goquery.Selection) {
-		val, exist := str.Attr("data-testid")
-		if !exist || val != "listing-card-title" {
+		key, exist := str.Attr("data-testid")
+		if !exist || !helper.InStringArray([]string{"listing-card-title", "price-availability-row", "listing-card-subtitle"}, key) {
 			return
 		}
-		fmt.Println("Title:", str.Text())
 
-		s.req(str.Text())
+		fmt.Println("Title:", str.Text())
+		data = append(data, &model.CrawlData{
+			Key: key,
+			Val: str.Text(),
+		})
 
 		//酒店名称 listing-card-title
 		//明星
@@ -83,10 +85,12 @@ func (s *Service) crawlQueue(item *model.TaskItem) {
 		//入住日期 listing-card-subtitle
 		//退房日期
 		//客人
-
 	})
 
-	//// 打印 HTML 内容
-	//fmt.Println(html)
-
+	buf, err := json.Marshal(data)
+	if err != nil {
+		log.Fatal("xxx")
+		return
+	}
+	s.req(buf)
 }

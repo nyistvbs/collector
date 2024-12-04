@@ -14,7 +14,7 @@ type Dao struct {
 
 func New() *Dao {
 	// 配置数据库连接字符串
-	dsn := "root:password@tcp(localhost:3306)/testdb?charset=utf8mb4&parseTime=True&loc=Local"
+	dsn := "root:123456@tcp(localhost:3306)/tourism?charset=utf8mb4&parseTime=True&loc=Local"
 
 	// 打开数据库连接
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
@@ -30,6 +30,13 @@ func New() *Dao {
 
 	return &Dao{
 		db: db,
+	}
+
+}
+
+func (d *Dao) Close() {
+	if d.db != nil {
+		d.Close()
 	}
 
 }
