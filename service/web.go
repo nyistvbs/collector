@@ -12,13 +12,16 @@ import (
 )
 
 func (s *Service) tcp() {
-	ln, err := net.Listen("tcp", ":8080") // 监听 8080 端口
+	ln, err := net.Listen("tcp", ":"+s.queueCfg) // 监听 8080 端口
 	if err != nil {
 		log.Fatal("Error starting server: ", err)
 		os.Exit(1)
 	}
-	defer ln.Close()
-	fmt.Println("Server listening on port 8080...")
+	defer func() {
+		ln.Close()
+		s.Close()
+	}()
+	log.Println("Server listening on port: ", s.queueCfg)
 
 	for {
 		// 等待并接收客户端连接
@@ -64,7 +67,7 @@ func (s *Service) resp(conn net.Conn) {
 
 func (s *Service) req(message []byte) {
 	// 连接到 TCP 服务器 (假设服务器地址为 localhost:8080)
-	conn, err := net.Dial("tcp", "localhost:8080")
+	conn, err := net.Dial("tcp", "localhost:"+s.queueCfg)
 	if err != nil {
 		log.Fatal("Error connecting to server:", err)
 	}
@@ -93,13 +96,12 @@ func (s *Service) req(message []byte) {
 	if err != nil {
 		log.Fatal("Error sending message:", err)
 	}
-	//fmt.Println("Message sent:", message)
 
 	// 接收服务器的响应
 	buf := make([]byte, 1024) // 1024 字节缓冲区
-	_, err = conn.Read(buf)
+	n, err := conn.Read(buf)
 	if err != nil {
 		log.Fatal("Error reading response:", err)
 	}
-	//fmt.Println("Received from server:", string(buffer[:n]))
+	fmt.Println("发送成功，已回复:", string(buf[:n]))
 }

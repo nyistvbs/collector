@@ -4,11 +4,16 @@ import (
 	"collector/model"
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 )
 
 func (s *Service) tourism() {
+	// TODO 采用堵塞队列
+	defer func() {
+		if err := recover(); err != nil {
+			log.Fatal("recover:", err)
+		}
+	}()
 	for {
 		if s.queue.IsEmpty() {
 			continue
@@ -24,14 +29,12 @@ func (s *Service) tourism() {
 		data := make([]*model.CrawlData, 0)
 		err = json.Unmarshal(val.([]byte), &data)
 		if err != nil {
-			log.Fatal("")
-			continue
+			log.Fatal("序列化失败", err)
 		}
 
-		// 处理逻辑
+		// 处理逻辑 TODO 处理爬虫数据并去重
 		rows := &model.TourismDB{}
 		for _, v := range data {
-			fmt.Println(v)
 			switch v.Key {
 			case "listing-card-title":
 				rows.HotelName = v.Val
@@ -40,18 +43,9 @@ func (s *Service) tourism() {
 			}
 		}
 
-		//酒店名称 listing-card-title
-		//明星
-		//价格 price-availability-row
-		//税前价格
-		//入住日期 listing-card-subtitle
-		//退房日期
-		//客人
-
-		buf, _ := json.Marshal(rows)
-		fmt.Println(string(buf))
 		if rows.HotelName != "" {
 			s.dao.TourismInsert(ctx, rows)
+			log.Println("入库成功 数据:", rows)
 		}
 	}
 

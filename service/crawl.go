@@ -4,7 +4,6 @@ import (
 	"collector/helper"
 	"collector/model"
 	"encoding/json"
-	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -30,6 +29,7 @@ func (s *Service) crawl() {
 	for _, v := range data.Tasks {
 		v := v
 		ewg.Go(func() error {
+			log.Println("正在爬取URL", v.Url)
 			s.crawlQueue(v)
 			return nil
 		})
@@ -38,8 +38,6 @@ func (s *Service) crawl() {
 }
 
 func (s *Service) crawlQueue(item *model.TaskItem) {
-	fmt.Println(item.Url)
-
 	// 打开目标页面
 	page := s.rod.MustPage(item.Url).MustWaitLoad()
 
@@ -47,9 +45,8 @@ func (s *Service) crawlQueue(item *model.TaskItem) {
 		UserAgent: item.Headers.UserAgent,
 	})
 
-	// TODO
+	// TODO 等待页面完全加载
 	time.Sleep(5 * time.Second)
-	//page.MustWait("span")
 
 	// 获取页面 HTML
 	html, err := page.HTML()
@@ -60,11 +57,10 @@ func (s *Service) crawlQueue(item *model.TaskItem) {
 	// 解析 HTML
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(html))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("goquery.NewDocumentFromReader err:", err)
 	}
 
 	// 提取数据
-	//fmt.Println(doc.Find("data-testid").Text())
 	data := make([]*model.CrawlData, 0)
 	doc.Find("div").Each(func(i int, str *goquery.Selection) {
 		key, exist := str.Attr("data-testid")
@@ -72,24 +68,16 @@ func (s *Service) crawlQueue(item *model.TaskItem) {
 			return
 		}
 
-		fmt.Println("Title:", str.Text())
+		log.Println("提取数据 标签:", key, " 内容:", str.Text())
 		data = append(data, &model.CrawlData{
 			Key: key,
 			Val: str.Text(),
 		})
-
-		//酒店名称 listing-card-title
-		//明星
-		//价格 price-availability-row
-		//税前价格
-		//入住日期 listing-card-subtitle
-		//退房日期
-		//客人
 	})
 
 	buf, err := json.Marshal(data)
 	if err != nil {
-		log.Fatal("xxx")
+		log.Fatal("序列化错误")
 		return
 	}
 	s.req(buf)

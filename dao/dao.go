@@ -2,6 +2,7 @@ package dao
 
 import (
 	"collector/model"
+	"fmt"
 	"log"
 
 	"gorm.io/driver/mysql"
@@ -12,9 +13,9 @@ type Dao struct {
 	db *gorm.DB
 }
 
-func New() *Dao {
+func New(user, password, table string) *Dao {
 	// 配置数据库连接字符串
-	dsn := "root:123456@tcp(localhost:3306)/tourism?charset=utf8mb4&parseTime=True&loc=Local"
+	dsn := fmt.Sprintf("%s:%s@tcp(localhost:3306)/%s?charset=utf8mb4&parseTime=True&loc=Local", user, password, table)
 
 	// 打开数据库连接
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
