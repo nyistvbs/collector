@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func (s *Service) tcp() {
+func (s *Service) web() {
 	ln, err := net.Listen("tcp", ":"+s.queueCfg) // 监听 8080 端口
 	if err != nil {
 		log.Fatal("Error starting server: ", err)
@@ -19,7 +19,7 @@ func (s *Service) tcp() {
 	}
 	defer func() {
 		ln.Close()
-		s.Close()
+		s.Close() // TODO 后续监听退出优雅关闭
 	}()
 	log.Println("Server listening on port: ", s.queueCfg)
 

@@ -77,7 +77,7 @@ func (s *Service) crawlQueue(item *model.TaskItem) {
 
 	buf, err := json.Marshal(data)
 	if err != nil {
-		log.Fatal("序列化错误")
+		log.Fatal("序列化错误", err)
 		return
 	}
 	s.req(buf)

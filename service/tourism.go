@@ -8,7 +8,7 @@ import (
 )
 
 func (s *Service) tourism() {
-	// TODO 采用堵塞队列
+	// TODO 后续采用堵塞队列
 	defer func() {
 		if err := recover(); err != nil {
 			log.Fatal("recover:", err)
@@ -32,7 +32,7 @@ func (s *Service) tourism() {
 			log.Fatal("序列化失败", err)
 		}
 
-		// 处理逻辑 TODO 处理爬虫数据并去重
+		// 处理逻辑 TODO 业务逻辑处理爬虫数据并去重
 		rows := &model.TourismDB{}
 		for _, v := range data {
 			switch v.Key {
@@ -43,6 +43,7 @@ func (s *Service) tourism() {
 			}
 		}
 
+		// 入库
 		if rows.HotelName != "" {
 			s.dao.TourismInsert(ctx, rows)
 			log.Println("入库成功 数据:", rows)

@@ -37,9 +37,13 @@ func init() {
 }
 
 func New() *Service {
+	// 初始化数据层
 	svc.dao = dao.New(svc.user, svc.password, svc.table)
+	// 初始化队列
 	svc.queue = queue.New()
+	// 初始化爬虫
 	svc.rod = rod.New().MustConnect()
+
 	return svc
 }
 
@@ -57,7 +61,7 @@ func (s *Service) StartJob() {
 
 func (s *Service) Run() {
 	if s.mode == 1 {
-		s.tcp()
+		s.web()
 	}
 }
 
